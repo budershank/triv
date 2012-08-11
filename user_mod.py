@@ -37,3 +37,7 @@ class User(object):
     def was_wrong(self, question_oid):
         self._answered_questions.add(question_oid)
         db.user_guess_wrong(self._oid, question_oid)
+
+    def timed_out(self, question_oid):
+        self._answered_questions.add(question_oid)
+        db.user_guess_wrong(self._oid, question_oid)
