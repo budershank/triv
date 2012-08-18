@@ -1,4 +1,3 @@
-import pymongo
 import user_mod
 import db
 import unittest

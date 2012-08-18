@@ -89,5 +89,27 @@ def timed_out():
     user.timed_out(question_oid)
     return jsonify(ok=True)
 
+@app.route("/add_demographic", methods=["GET"])
+def add_demographic():
+    user_oid_str = request.args.get("uid", None)
+    user_oid, error_str = get_oid(user_oid_str)
+    if not user_oid:
+        return jsonify(ok=False, error=error_str)
+
+    category = request.args.get("cat", None)
+    if not category:
+        return jsonify(ok=False, error="No demographic category was named")
+
+    value = request.args.get("val", None)
+    if not value:
+        return jsonify(ok=False, error="No demographic value was named")
+
+    user = user_mod.User.from_oid(user_oid)
+    if not user:
+        return jsonify(ok=False, error="User does not exist")
+
+    user.add_demographic(category, value)
+    return jsonify(ok=True)
+
 if __name__ == "__main__":
     app.run(debug=True)
