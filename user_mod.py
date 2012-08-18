@@ -3,20 +3,25 @@ import question_mod
 import random
 
 class User(object):
-    def __init__(self, user_oid, username, correct, wrong):
+    def __init__(self, user_oid, username, correct, wrong, demographics):
         self._oid = user_oid
         self._username = username
         self._num_correct = len(correct)
         self._num_wrong = len(wrong)
         self._answered_questions = set(correct + wrong)
+        self._demographics = demographics
 
     @staticmethod
     def from_oid(user_oid):
         return User.from_doc(db.user_from_oid(user_oid))
 
+    @staticmethod
+    def from_username(username):
+        return User.from_doc(db.user_from_username(username))
+
     @classmethod
     def from_doc(cls, doc):
-        return cls(doc["_id"], doc["username"], doc["correct"], doc["wrong"])
+        return cls(doc["_id"], doc["username"], doc["correct"], doc["wrong"], doc["demographics"])
 
     def get_question(self):
         all_questions = question_mod.get_all_questions()
@@ -41,3 +46,7 @@ class User(object):
     def timed_out(self, question_oid):
         self._answered_questions.add(question_oid)
         db.user_guess_wrong(self._oid, question_oid)
+
+    def add_demographic(self, category, value):
+        self._demographics[category] = value
+        db.add_demographic(self._oid, category, value)

@@ -13,7 +13,8 @@ def create_user(username, passwd_hash):
                 "num_correct": 0,
                 "num_wrong": 0,
                 "correct": [],
-                "wrong": []}
+                "wrong": [],
+                "demographics": {}}
     users_coll.insert(new_user, safe=True)
 
 def user_from_oid(user_oid):
@@ -45,3 +46,7 @@ def insert_question(question, correct, wrong1, wrong2, wrong3):
                  "wrong3": wrong3}
     questions_coll.insert(to_insert, safe=True)
     return to_insert
+
+def add_demographic(user_oid, category, value):
+    users_coll.update({"_id": user_oid},
+                      {"$set": {"demographics.%s" % (category,): value}}, safe=True)
