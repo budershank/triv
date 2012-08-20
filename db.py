@@ -33,9 +33,6 @@ def user_guess_wrong(user_oid, question_oid):
                       {"$addToSet": {"wrong": question_oid},
                        "$inc": {"num_wrong": 1}}, safe=True)
 
-def get_all_question_docs():
-    return list(questions_coll.find())
-
 def insert_question(question, correct, wrong1, wrong2, wrong3):
     question_oid = ObjectId()
     to_insert = {"_id": question_oid,
@@ -43,9 +40,34 @@ def insert_question(question, correct, wrong1, wrong2, wrong3):
                  "correct": correct,
                  "wrong1": wrong1,
                  "wrong2": wrong2,
-                 "wrong3": wrong3}
+                 "wrong3": wrong3,
+                 "num_right": 0,
+                 "num_wrong": 0,
+                 "demographics": {}}
     questions_coll.insert(to_insert, safe=True)
     return to_insert
+
+def question_from_oid(question_oid):
+    return questions_coll.find_one({"_id": question_oid})
+
+def get_all_question_docs():
+    return list(questions_coll.find())
+
+def update_question_correct(question_oid, demographics):
+    to_increment = {"num_right": 1}
+    for category, value in demographics.items():
+        to_increment["demographics.%s.%s.right" % (category, value)] = 1
+
+    questions_coll.update({"_id": question_oid},
+                          {"$inc": to_increment}, safe=True)
+
+def update_question_wrong(question_oid, demographics):
+    to_increment = {"num_wrong": 1}
+    for category, value in demographics.items():
+        to_increment["demographics.%s.%s.wrong" % (category, value)] = 1
+
+    questions_coll.update({"_id": question_oid},
+                          {"$inc": to_increment}, safe=True)
 
 def add_demographic(user_oid, category, value):
     users_coll.update({"_id": user_oid},

@@ -37,15 +37,18 @@ class User(object):
 
     def was_correct(self, question_oid):
         self._answered_questions.add(question_oid)
+        self._num_correct += 1
         db.user_guess_right(self._oid, question_oid)
 
     def was_wrong(self, question_oid):
         self._answered_questions.add(question_oid)
+        self._num_wrong += 1
         db.user_guess_wrong(self._oid, question_oid)
 
     def timed_out(self, question_oid):
         self._answered_questions.add(question_oid)
         db.user_guess_wrong(self._oid, question_oid)
+        db.update_question_wrong(question_oid, self._demographics)
 
     def add_demographic(self, category, value):
         self._demographics[category] = value

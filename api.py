@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 import question_mod
 import random
 import user_mod
+import db
 
 app = Flask(__name__)
 
@@ -35,7 +36,7 @@ def get_question():
 
     choices = [question.correct, question.wrong1, question.wrong2, question.wrong3]
     random.shuffle(choices)
-    return jsonify(question_oid=str(question.oid),
+    return jsonify(ok=True, question_oid=str(question.oid),
                    question=question.question,
                    choices=choices)
 
@@ -68,10 +69,12 @@ def guess_answer():
 
     if question.right_answer(answer):
         user.was_correct(question.oid)
-        return jsonify(ok=True, is_correct=True)
+        question.answered_right(user._demographics)
+        return jsonify(ok=True, is_correct=True, demographics=question.demographics)
     else:
         user.was_wrong(question.oid)
-        return jsonify(ok=True, is_correct=False)
+        question.answered_wrong(user._demographics)
+        return jsonify(ok=True, is_correct=False, demographics=question.demographics)
 
 @app.route("/timed_out", methods=["GET"])
 def timed_out():
@@ -110,6 +113,18 @@ def add_demographic():
 
     user.add_demographic(category, value)
     return jsonify(ok=True)
+
+@app.route("/add_question", methods=["GET"])
+def add_question():
+    args = request.args
+    for required_param in ["question", "correct", "wrong1", "wrong2", "wrong3"]:
+        if not args.get(required_param, None):
+            return jsonify(ok=False, error="missing parameter `%s`" % (required_param,))
+
+    inserted_doc = db.insert_question(args["question"], args["correct"],
+                                      args["wrong1"], args["wrong2"], args["wrong3"])
+    question_mod.add_question(inserted_doc)
+    return jsonify(ok=True, question_oid=str(inserted_doc["_id"]))
 
 if __name__ == "__main__":
     app.run(debug=True)
