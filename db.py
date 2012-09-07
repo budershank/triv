@@ -7,21 +7,45 @@ db = conn["triv"]
 users_coll = db["users"]
 questions_coll = db["questions"]
 
+def ensure_indexes():
+    global users_coll
+
+    users_coll.ensure_index("facebook_id", unique=True, sparse=True)
+    users_coll.ensure_index("username", unique=True, sparse=True)
+
+base_user = {"num_correct": 0,
+             "num_wrong": 0,
+             "correct": [],
+             "wrong": [],
+             "demographics": {}}
+
 def create_user(username, passwd_hash):
-    new_user = {"username": username,
-                "password": passwd_hash,
-                "num_correct": 0,
-                "num_wrong": 0,
-                "correct": [],
-                "wrong": [],
-                "demographics": {}}
+    user_oid = ObjectId()
+    new_user = {"_id": user_oid,
+                "username": username,
+                "password": passwd_hash}
+
+    new_user.update(base_user)
     users_coll.insert(new_user, safe=True)
+    return user_oid
+
+def create_facebook_user(facebook_id):
+    user_oid = ObjectId()
+    new_user = {"_id": user_oid,
+                "facebook_id": facebook_id}
+
+    new_user.update(base_user)
+    users_coll.insert(new_user, safe=True)
+    return user_oid
 
 def user_from_oid(user_oid):
     return users_coll.find_one({"_id": user_oid})
 
 def user_from_username(username):
     return users_coll.find_one({"username": username})
+
+def user_from_facebook_id(facebook_id):
+    return users_coll.find_one({"facebook_id": facebook_id})
 
 def user_guess_right(user_oid, question_oid):
     users_coll.update({"_id": user_oid},

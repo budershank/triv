@@ -17,6 +17,8 @@ class TestAPI(TestCase):
     def setUp(self):
         db.users_coll.drop();
         db.questions_coll.drop()
+        db.ensure_indexes()
+
         question_mod.init(flush=True)
 
         db.create_user('dan', 'no password')
@@ -84,3 +86,47 @@ class TestAPI(TestCase):
         new_question = question_mod.get_question(new_question_doc["_id"])
         self.assertEquals(question_mod.Question, type(new_question))
         self.assertEquals(1, new_question.num_right)
+
+    def test_create_users_and_login(self):
+        #create `another_dan` and login
+        response = self.client.get("/create_user?username=another_dan&password=123")
+        self.assertTrue(response.json["ok"])
+        user_oid = response.json["user_oid"]
+        self.assertIsNotNone(db.users_coll.find_one({"_id": ObjectId(user_oid)}))
+
+        response = self.client.get("/login?username=another_dan&password=123")
+        self.assertTrue(response.json["ok"])
+        self.assertEquals(user_oid, response.json["user_oid"])
+
+        #create fbid: `456789` and login
+        response = self.client.get("/create_facebook_user?fbid=456789")
+        self.assertTrue(response.json["ok"])
+        user_oid = response.json["user_oid"]
+        self.assertIsNotNone(db.users_coll.find_one({"_id": ObjectId(user_oid)}))
+
+        response = self.client.get("/login_facebook?fbid=456789")
+        self.assertTrue(response.json["ok"])
+        self.assertEquals(user_oid, response.json["user_oid"])
+
+    def test_create_users_failure_cases(self):
+        response = self.client.get("/create_user?username=username")
+        self.assertFalse(response.json["ok"])
+        self.assertEquals("Missing the `password` parameter", response.json["error"])
+
+        response = self.client.get("/create_user?password=password")
+        self.assertFalse(response.json["ok"])
+        self.assertEquals("Missing the `username` parameter", response.json["error"])
+
+        response = self.client.get("/create_user?username=dan&password=123")
+        self.assertFalse(response.json["ok"])
+        self.assertEquals("Username `dan` already exists", response.json["error"])
+
+        response = self.client.get("/create_facebook_user")
+        self.assertFalse(response.json["ok"])
+        self.assertEquals("Missing the `fbid` parameter", response.json["error"])
+
+        response = self.client.get("/create_facebook_user?fbid=12345")
+        self.assertTrue(response.json["ok"])
+        response = self.client.get("/create_facebook_user?fbid=12345")
+        self.assertFalse(response.json["ok"])
+        self.assertEquals("FBID `12345` already exists", response.json["error"])

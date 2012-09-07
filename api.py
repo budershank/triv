@@ -1,10 +1,12 @@
 from bson.objectid import ObjectId, InvalidId
 from flask import Flask, request, jsonify
+from pymongo.errors import DuplicateKeyError
 
 import question_mod
 import random
 import user_mod
 import db
+import sha
 
 app = Flask(__name__)
 
@@ -18,6 +20,68 @@ def get_oid(oid_str):
         return None, "Invalid id string"
 
     return oid, None
+
+def hash_password(password):
+    salted = "this is my " + password + " salting secret key"
+    return sha.sha(salted).hexdigest()
+
+@app.route("/create_user", methods=["GET"])
+def create_user():
+    username = request.args.get("username", None)
+    if not username:
+        return jsonify(ok=False, error="Missing the `username` parameter")
+
+    password = request.args.get("password", None)
+    if not password:
+        return jsonify(ok=False, error="Missing the `password` parameter")
+
+    try:
+        new_user_oid = db.create_user(username, hash_password(password))
+    except DuplicateKeyError:
+        return jsonify(ok=False, error="Username `%s` already exists" % (username,))
+
+    return jsonify(ok=True, user_oid=str(new_user_oid))
+
+@app.route("/create_facebook_user", methods=["GET"])
+def create_facebook_user():
+    facebook_id = request.args.get("fbid", None)
+    if not facebook_id:
+        return jsonify(ok=False, error="Missing the `fbid` parameter")
+
+    try:
+        new_user_oid = db.create_facebook_user(facebook_id)
+    except DuplicateKeyError:
+        return jsonify(ok=False, error="FBID `%s` already exists" % (facebook_id,))
+
+    return jsonify(ok=True, user_oid=str(new_user_oid))
+
+@app.route("/login", methods=["GET"])
+def login():
+    username = request.args.get("username", None)
+    if not username:
+        return jsonify(ok=False, error="Missing the `username` parameter")
+
+    password = request.args.get("password", None)
+    if not password:
+        return jsonify(ok=False, error="Missing the `password` parameter")
+
+    user_doc = db.user_from_username(username)
+    if not user_doc or hash_password(password) != user_doc["password"]:
+        return jsonify(ok=False, error="Unknown username or wrong password")
+
+    return jsonify(ok=True, user_oid=str(user_doc["_id"]))
+
+@app.route("/login_facebook", methods=["GET"])
+def login_facebook():
+    fbid = request.args.get("fbid")
+    if not fbid:
+        return jsonify(ok=False, error="Missing the `fbid` parameter")
+
+    user_doc = db.user_from_facebook_id(fbid)
+    if not user_doc:
+        return jsonify(ok=False, error="Unknown facebook id")
+
+    return jsonify(ok=True, user_oid=str(user_doc["_id"]))
 
 @app.route("/get_question", methods=["GET"])
 def get_question():
