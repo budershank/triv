@@ -3,9 +3,8 @@ import question_mod
 import random
 
 class User(object):
-    def __init__(self, user_oid, username, correct, wrong, demographics):
+    def __init__(self, user_oid, correct, wrong, demographics):
         self._oid = user_oid
-        self._username = username
         self._num_correct = len(correct)
         self._num_wrong = len(wrong)
         self._answered_questions = set(correct + wrong)
@@ -21,7 +20,7 @@ class User(object):
 
     @classmethod
     def from_doc(cls, doc):
-        return cls(doc["_id"], doc["username"], doc["correct"], doc["wrong"], doc["demographics"])
+        return cls(doc["_id"], doc["correct"], doc["wrong"], doc["demographics"])
 
     def get_question(self):
         all_questions = question_mod.get_all_questions()
