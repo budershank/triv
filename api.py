@@ -9,6 +9,7 @@ import db
 import sha
 
 app = Flask(__name__)
+db.ensure_indexes()
 
 def get_oid(oid_str):
     if not oid_str:
