@@ -99,12 +99,12 @@ class TestAPI(TestCase):
         self.assertEquals(user_oid, response.json["user_oid"])
 
         #create fbid: `456789` and login
-        response = self.client.get("/create_facebook_user?fbid=456789")
+        response = self.client.get("/facebook_user?fbid=456789")
         self.assertTrue(response.json["ok"])
         user_oid = response.json["user_oid"]
         self.assertIsNotNone(db.users_coll.find_one({"_id": ObjectId(user_oid)}))
 
-        response = self.client.get("/login_facebook?fbid=456789")
+        response = self.client.get("/facebook_user?fbid=456789")
         self.assertTrue(response.json["ok"])
         self.assertEquals(user_oid, response.json["user_oid"])
 
@@ -121,12 +121,10 @@ class TestAPI(TestCase):
         self.assertFalse(response.json["ok"])
         self.assertEquals("Username `dan` already exists", response.json["error"])
 
-        response = self.client.get("/create_facebook_user")
+        response = self.client.get("/facebook_user")
         self.assertFalse(response.json["ok"])
         self.assertEquals("Missing the `fbid` parameter", response.json["error"])
 
-        response = self.client.get("/create_facebook_user?fbid=12345")
-        self.assertTrue(response.json["ok"])
-        response = self.client.get("/create_facebook_user?fbid=12345")
+        response = self.client.get("/facebook_user?fbid=")
         self.assertFalse(response.json["ok"])
-        self.assertEquals("FBID `12345` already exists", response.json["error"])
+        self.assertEquals("Missing the `fbid` parameter", response.json["error"])

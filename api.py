@@ -43,8 +43,8 @@ def create_user():
 
     return jsonify(ok=True, user_oid=str(new_user_oid))
 
-@app.route("/create_facebook_user", methods=["GET"])
-def create_facebook_user():
+@app.route("/facebook_user", methods=["GET"])
+def facebook_user():
     facebook_id = request.args.get("fbid", None)
     if not facebook_id:
         return jsonify(ok=False, error="Missing the `fbid` parameter")
@@ -52,9 +52,13 @@ def create_facebook_user():
     try:
         new_user_oid = db.create_facebook_user(facebook_id)
     except DuplicateKeyError:
-        return jsonify(ok=False, error="FBID `%s` already exists" % (facebook_id,))
+        pass
 
-    return jsonify(ok=True, user_oid=str(new_user_oid))
+    user_doc = db.user_from_facebook_id(facebook_id)
+    if not user_doc:
+        return jsonify(ok=False, error="Weird error. Didn't get a user by Facebook ID right after doing an insert.")
+
+    return jsonify(ok=True, user_oid=str(user_doc["_id"]))
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -69,18 +73,6 @@ def login():
     user_doc = db.user_from_username(username)
     if not user_doc or hash_password(password) != user_doc["password"]:
         return jsonify(ok=False, error="Unknown username or wrong password")
-
-    return jsonify(ok=True, user_oid=str(user_doc["_id"]))
-
-@app.route("/login_facebook", methods=["GET"])
-def login_facebook():
-    fbid = request.args.get("fbid")
-    if not fbid:
-        return jsonify(ok=False, error="Missing the `fbid` parameter")
-
-    user_doc = db.user_from_facebook_id(fbid)
-    if not user_doc:
-        return jsonify(ok=False, error="Unknown facebook id")
 
     return jsonify(ok=True, user_oid=str(user_doc["_id"]))
 
